@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>纽约出行需求分析 · DuckDB</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.6.0/echarts.min.js"></script>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <h1>纽约市出行需求分析</h1>
+    <span class="sub">NYC TLC 行程记录 · Python + DuckDB 单写入进程</span>
+  </div>
+  <div id="chips" class="chips"></div>
+</header>
+
+<section class="filters">
+  <fieldset id="svc"><legend>服务</legend></fieldset>
+  <label>开始 <input type="date" id="start"></label>
+  <label>结束 <input type="date" id="end"></label>
+  <label>上车行政区
+    <select id="borough"><option value="">全部</option></select>
+  </label>
+  <button id="apply" class="primary">刷新分析</button>
+  <span id="total-ms" class="muted"></span>
+</section>
+
+<nav id="tabs">
+  <button data-tab="demand" class="active">需求概览</button>
+  <button data-tab="space">空间分析</button>
+  <button data-tab="ops">运营与效率</button>
+  <button data-tab="events">事件检测</button>
+  <button data-tab="bench">性能基准</button>
+  <button data-tab="lab">SQL 实验室</button>
+  <button data-tab="ingest">数据导入</button>
+</nav>
+
+<main>
+  <div class="tab" id="tab-demand">
+    <div id="kpis" class="kpis"></div>
+    <div class="grid">
+      <div class="card wide" data-a="daily"><div class="chart"></div></div>
+      <div class="card wide" data-a="heatmap"><div class="chart"></div></div>
+      <div class="card" data-a="market_share"><div class="chart"></div></div>
+      <div class="card" data-a="distance_hist"><div class="chart"></div></div>
+    </div>
+  </div>
+
+  <div class="tab" id="tab-space" hidden>
+    <div class="grid">
+      <div class="card" data-a="top_zones"><div class="chart tall"></div></div>
+      <div class="card" data-a="borough_flows"><div class="chart tall"></div></div>
+      <div class="card wide" data-a="od_pairs"><div class="table"></div></div>
+      <div class="card wide" data-a="airports"><div class="chart"></div></div>
+    </div>
+  </div>
+
+  <div class="tab" id="tab-ops" hidden>
+    <div class="grid">
+      <div class="card wide" data-a="economics"><div class="table"></div></div>
+      <div class="card" data-a="speed_by_hour"><div class="chart"></div></div>
+      <div class="card" data-a="wait_times"><div class="chart"></div></div>
+    </div>
+  </div>
+
+  <div class="tab" id="tab-events" hidden>
+    <div class="grid">
+      <div class="card wide" data-a="anomalies"><div class="table"></div></div>
+    </div>
+  </div>
+
+  <div class="tab" id="tab-bench" hidden>
+    <div class="card wide">
+      <div class="card-head"><h3>扫描性能：DuckDB 表 vs. 直接查询原始 Parquet</h3>
+        <button id="run-bench" class="primary">运行基准</button></div>
+      <p class="muted">同一条 SQL 分别在已导入的 <code>trips</code> 表（列式压缩存储）和原始 Parquet 文件（现场规范化，不导入）上执行。</p>
+      <div id="bench-out"></div>
+    </div>
+  </div>
+
+  <div class="tab" id="tab-lab" hidden>
+    <div class="card wide">
+      <div class="card-head"><h3>SQL 实验室（只读）</h3>
+        <button id="run-sql" class="primary">执行 ⌘/Ctrl+Enter</button></div>
+      <p class="muted">可查询 <code>trips</code>、<code>zones</code>、<code>ingested_files</code>；最多返回 1000 行。</p>
+      <div class="examples" id="examples"></div>
+      <textarea id="sql" spellcheck="false">SELECT z.borough, count(*) AS trips, round(avg(total), 2) AS avg_total
+FROM trips t JOIN zones z ON z.location_id = t.pu_location_id
+GROUP BY ALL ORDER BY trips DESC;</textarea>
+      <div id="sql-out"></div>
+    </div>
+  </div>
+
+  <div class="tab" id="tab-ingest" hidden>
+    <div class="grid">
+      <div class="card">
+        <div class="card-head"><h3>从 TLC 下载并导入</h3></div>
+        <p class="muted">文件并行下载；导入由服务器进程内唯一的写线程串行执行，导入期间查询照常进行（MVCC 快照）。</p>
+        <fieldset id="ingest-svc"><legend>服务</legend></fieldset>
+        <label class="block">月份 <input id="ingest-months" value="2025-01:2025-03" placeholder="2025-01:2025-06 或 2025-01,2025-03"></label>
+        <button id="start-ingest" class="primary">开始导入</button>
+        <div id="jobs"></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h3>已导入文件</h3></div>
+        <div id="files"></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<dialog id="sql-dialog">
+  <div class="card-head"><h3 id="dlg-title"></h3><button id="dlg-close">关闭</button></div>
+  <pre id="dlg-sql"></pre>
+  <button id="dlg-explain">EXPLAIN ANALYZE</button>
+  <pre id="dlg-plan"></pre>
+</dialog>
+
+<footer class="muted">数据来源：<a href="https://www.nyc.gov/site/tlc/about/tlc-trip-record-data.page" target="_blank" rel="noopener">NYC TLC Trip Record Data</a> · 引擎：<a href="https://github.com/duckdb/duckdb" target="_blank" rel="noopener">DuckDB</a></footer>
+<script src="/static/app.js"></script>
+</body>
+</html>
