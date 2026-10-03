@@ -5,22 +5,22 @@ const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const dark = matchMedia("(prefers-color-scheme: dark)").matches;
 const fmt = (v, d = 0) =>
   v == null ? "—" : typeof v === "number"
-    ? v.toLocaleString("zh-CN", { maximumFractionDigits: d }) : v;
-const big = (v) => v == null ? "—" : v >= 1e8 ? `${(v / 1e8).toFixed(2)} 亿` : v >= 1e4 ? `${(v / 1e4).toFixed(1)} 万` : fmt(v);
+    ? v.toLocaleString(I18N.language === "en" ? "en-US" : "zh-CN", { maximumFractionDigits: d }) : v;
+const big = (v) => I18N.language === "en" && v != null ? new Intl.NumberFormat("en-US", {notation:"compact", maximumFractionDigits:2}).format(v) : v == null ? "—" : v >= 1e8 ? `${(v / 1e8).toFixed(2)} 亿` : v >= 1e4 ? `${(v / 1e4).toFixed(1)} 万` : fmt(v);
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
-const SERVICE_LABEL = { yellow: "黄色出租车", green: "绿色出租车", fhvhv: "网约车 (HVFHV)" };
+const SERVICE_LABEL = { yellow: t("黄色出租车"), green: t("绿色出租车"), fhvhv: t("网约车 (HVFHV)") };
 const COLORS = { yellow: "#f2b705", green: "#3aa35c", fhvhv: "#5b6cff",
   Yellow: "#f2b705", Green: "#3aa35c", Uber: "#2b2f38", Lyft: "#ff00bf", Via: "#2ba4d9", Juno: "#8a5cf6" };
 if (dark) COLORS.Uber = "#c9ced8";
-const DOW = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"];
+const DOW = [t("周一"), t("周二"), t("周三"), t("周四"), t("周五"), t("周六"), t("周日")];
 const COL_LABEL = {
-  zone: "区域", borough: "行政区", origin: "起点", destination: "终点", trips: "行程数",
-  share_pct: "占比 %", avg_total: "平均实付 $", avg_miles: "平均英里", median_min: "中位时长 (分)",
-  mph: "车速 mph", company: "公司", avg_fare: "平均车费 $", fare_per_mile: "$/英里",
-  fare_per_min: "$/分钟", tip_pct: "小费率 %", driver_pay_pct: "司机分成 %", avg_wait_min: "平均等车 (分)",
-  p90_wait_min: "P90 等车 (分)", cbd_fee_pct: "缴拥堵费 %", shared_pct: "拼车 %",
-  hour: "时间", expected: "基线", ratio: "倍数", z_score: "Z 分数",
+  zone: t("区域"), borough: t("行政区"), origin: t("起点"), destination: t("终点"), trips: t("行程数"),
+  share_pct: t("占比 %"), avg_total: t("平均实付 $"), avg_miles: t("平均英里"), median_min: t("中位时长 (分)"),
+  mph: t("车速 mph"), company: t("公司"), avg_fare: t("平均车费 $"), fare_per_mile: t("$/英里"),
+  fare_per_min: t("$/分钟"), tip_pct: t("小费率 %"), driver_pay_pct: t("司机分成 %"), avg_wait_min: t("平均等车 (分)"),
+  p90_wait_min: t("P90 等车 (分)"), cbd_fee_pct: t("缴拥堵费 %"), shared_pct: t("拼车 %"),
+  hour: t("时间"), expected: t("基线"), ratio: t("倍数"), z_score: t("Z 分数"),
 };
 
 let STATUS = null;
@@ -29,7 +29,7 @@ const charts = new Map();
 async function api(path, opts) {
   const r = await fetch(path, opts);
   const body = await r.json().catch(() => ({}));
-  if (!r.ok) throw new Error(body.detail || r.statusText);
+  if (!r.ok) throw new Error(t(typeof body.detail === "string" ? body.detail : body.detail ? JSON.stringify(body.detail) : r.statusText));
   return body;
 }
 
@@ -48,15 +48,15 @@ function chart(card) {
   return charts.get(el);
 }
 addEventListener("resize", () => charts.forEach((c) => c.resize()));
-const axisNum = (v) => (Math.abs(v) >= 1e4 ? `${+(v / 1e4).toFixed(1)}万` : v);
+const axisNum = (v) => I18N.language === "en" ? new Intl.NumberFormat("en-US", {notation:"compact", maximumFractionDigits:1}).format(v) : (Math.abs(v) >= 1e4 ? `${+(v / 1e4).toFixed(1)}万` : v);
 const base = { backgroundColor: "transparent", grid: { left: 12, right: 20, top: 40, bottom: 12, containLabel: true },
   tooltip: { trigger: "axis" }, legend: { top: 0, type: "scroll" } };
 
 function table(rows, numeric = true, labels = COL_LABEL) {
-  if (!rows.length) return '<p class="muted">无数据</p>';
+  if (!rows.length) return htmlT('<p class="muted">无数据</p>');
   const cols = Object.keys(rows[0]);
   const isNum = (c) => numeric && typeof rows.find((r) => r[c] != null)?.[c] === "number";
-  return `<table><thead><tr>${cols.map((c) => `<th class="${isNum(c) ? "num" : ""}">${esc(labels[c] || c)}</th>`).join("")}</tr></thead>
+  return `<table><thead><tr>${cols.map((c) => `<th class="${isNum(c) ? "num" : ""}">${esc(t(labels[c] || c))}</th>`).join("")}</tr></thead>
   <tbody>${rows.map((r) => `<tr>${cols.map((c) => `<td class="${isNum(c) ? "num" : ""}">${esc(fmt(r[c], 2))}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
 }
 
@@ -75,19 +75,19 @@ const RENDER = {
     const ma = pivot(rows, "day", "service", "ma7");
     const total = xs.map((_, i) => ss.reduce((a, s) => a + (ma.data[s][i] || 0), 0));
     chart(card).setOption({ ...base, xAxis: { type: "category", data: xs },
-      yAxis: { type: "value", name: "行程/日", axisLabel: { formatter: axisNum } },
+      yAxis: { type: "value", name: t("行程/日"), axisLabel: { formatter: axisNum } },
       series: [...ss.map((s) => ({ name: SERVICE_LABEL[s], type: "bar", stack: "t", data: data[s],
         itemStyle: { color: COLORS[s] }, barCategoryGap: "15%" })),
-        { name: "合计 7 日均线", type: "line", data: total, symbol: "none", smooth: true,
+        { name: t("合计 7 日均线"), type: "line", data: total, symbol: "none", smooth: true,
           lineStyle: { width: 2.5, color: dark ? "#fff" : "#1d2330" }, itemStyle: { color: dark ? "#fff" : "#1d2330" } }],
       dataZoom: [{ type: "inside" }] }, true);
   },
   heatmap(card, rows) {
     const max = Math.max(...rows.map((r) => r.avg_trips));
     chart(card).setOption({ ...base, tooltip: { position: "top",
-        formatter: (p) => `${DOW[p.value[1]]} ${p.value[0]}:00<br>平均 ${fmt(p.value[2])} 单/小时` },
+        formatter: (p) => `${DOW[p.value[1]]} ${p.value[0]}:00<br>${tr("平均 {0} 单/小时", fmt(p.value[2]))}` },
       grid: { left: 12, right: 20, top: 10, bottom: 70, containLabel: true },
-      xAxis: { type: "category", data: [...Array(24).keys()].map((h) => `${h}时`), splitArea: { show: true } },
+      xAxis: { type: "category", data: [...Array(24).keys()].map((h) => tr("{0}时", h)), splitArea: { show: true } },
       yAxis: { type: "category", data: DOW, inverse: true },
       visualMap: { min: 0, max, calculable: true, orient: "horizontal", left: "center", bottom: 0,
         inRange: { color: dark ? ["#1a1e26", "#7a5c00", "#f2b705", "#fff3c4"] : ["#fffbea", "#f7d35c", "#e08a00", "#7a2e00"] } },
@@ -101,7 +101,7 @@ const RENDER = {
   },
   distance_hist(card, rows) {
     const { xs, ss, data } = pivot(rows, "miles", "service", "trips");
-    chart(card).setOption({ ...base, xAxis: { type: "category", name: "英里", data: xs.map((m) => (m === 30 ? "30+" : m)) },
+    chart(card).setOption({ ...base, xAxis: { type: "category", name: t("英里"), data: xs.map((m) => (m === 30 ? "30+" : m)) },
       yAxis: { type: "value", axisLabel: { formatter: axisNum } },
       series: ss.map((s) => ({ name: SERVICE_LABEL[s], type: "bar", stack: "d", data: data[s], itemStyle: { color: COLORS[s] } })) }, true);
   },
@@ -110,7 +110,7 @@ const RENDER = {
     chart(card).setOption({ ...base, grid: { left: 12, right: 60, top: 10, bottom: 12, containLabel: true }, legend: { show: false },
       xAxis: { type: "value", axisLabel: { formatter: axisNum } }, yAxis: { type: "category", data: r.map((x) => `${x.zone}（${x.borough}）`) },
       tooltip: { trigger: "axis", formatter: (p) => { const x = r[p[0].dataIndex];
-        return `${esc(x.zone)}<br>${fmt(x.trips)} 次 · ${x.share_pct}%<br>平均实付 $${x.avg_total} · ${x.avg_miles} 英里`; } },
+        return `${esc(x.zone)}<br>${tr("{0} 次 · {1}%", fmt(x.trips), x.share_pct)}<br>${tr("平均实付 ${0} · {1} 英里", x.avg_total, x.avg_miles)}`; } },
       series: [{ type: "bar", data: r.map((x) => x.trips), itemStyle: { color: "#f2b705" },
         label: { show: true, position: "right", formatter: (p) => `${r[p.dataIndex].share_pct}%` } }] }, true);
   },
@@ -126,23 +126,23 @@ const RENDER = {
     const hours = [...Array(24).keys()];
     const groups = {};
     rows.forEach((r) => ((groups[`${r.airport} ${r.direction}`] ||= hours.map(() => 0))[r.hour] = r.trips));
-    chart(card).setOption({ ...base, xAxis: { type: "category", data: hours.map((h) => `${h}时`) }, yAxis: { type: "value", axisLabel: { formatter: axisNum } },
-      series: Object.entries(groups).map(([name, data]) => ({ name, type: "line", data, smooth: true, symbol: "none",
+    chart(card).setOption({ ...base, xAxis: { type: "category", data: hours.map((h) => tr("{0}时", h)) }, yAxis: { type: "value", axisLabel: { formatter: axisNum } },
+      series: Object.entries(groups).map(([name, data]) => ({ name: name.replace("前往机场", t("前往机场")).replace("离开机场", t("离开机场")), type: "line", data, smooth: true, symbol: "none",
         lineStyle: { type: name.includes("前往") ? "dashed" : "solid" } })) }, true);
   },
   economics(card, rows) { $(".table", card).innerHTML = table(rows); },
   speed_by_hour(card, rows) {
     const { xs, ss, data } = pivot(rows, "hour", "day_type", "mph");
-    chart(card).setOption({ ...base, xAxis: { type: "category", data: xs.map((h) => `${h}时`) },
+    chart(card).setOption({ ...base, xAxis: { type: "category", data: xs.map((h) => tr("{0}时", h)) },
       yAxis: { type: "value", name: "mph", scale: true },
-      series: ss.map((s) => ({ name: s, type: "line", data: data[s], smooth: true })) }, true);
+      series: ss.map((s) => ({ name: t(s), type: "line", data: data[s], smooth: true })) }, true);
   },
   wait_times(card, rows) {
     const p50 = pivot(rows, "hour", "company", "p50_wait");
     const p90 = pivot(rows, "hour", "company", "p90_wait");
-    chart(card).setOption({ ...base, xAxis: { type: "category", data: p50.xs.map((h) => `${h}时`) },
-      yAxis: { type: "value", name: "分钟" },
-      series: [...p50.ss.map((s) => ({ name: `${s} 中位`, type: "line", data: p50.data[s], itemStyle: { color: COLORS[s] }, symbol: "none" })),
+    chart(card).setOption({ ...base, xAxis: { type: "category", data: p50.xs.map((h) => tr("{0}时", h)) },
+      yAxis: { type: "value", name: t("分钟") },
+      series: [...p50.ss.map((s) => ({ name: tr("{0} 中位", s), type: "line", data: p50.data[s], itemStyle: { color: COLORS[s] }, symbol: "none" })),
         ...p90.ss.map((s) => ({ name: `${s} P90`, type: "line", data: p90.data[s], itemStyle: { color: COLORS[s] }, symbol: "none", lineStyle: { type: "dashed" } }))] }, true);
   },
   anomalies(card, rows) {
@@ -154,7 +154,7 @@ function cardHead(card, name) {
   if ($(".card-head", card)) return;
   const a = STATUS.analyses[name];
   card.insertAdjacentHTML("afterbegin",
-    `<div class="card-head"><h3>${esc(a.title)}</h3><div class="meta"><span class="badge"></span><button class="show-sql">SQL</button></div></div><p class="doc">${esc(a.doc)}</p>`);
+    `<div class="card-head"><h3>${esc(t(a.title))}</h3><div class="meta"><span class="badge"></span><button class="show-sql">SQL</button></div></div><p class="doc">${esc(t(a.doc))}</p>`);
   $(".show-sql", card).onclick = () => openSql(name, card.dataset.sql);
 }
 
@@ -182,9 +182,9 @@ async function load(card) {
 
 async function loadKpis() {
   const { rows: [k], ms } = await api(`/api/analysis/overview?${filterQuery()}`);
-  const items = [["行程数", fmt(k.trips)], ["日均行程", fmt(k.trips_per_day)], ["乘客总支付", "$" + big(k.revenue)],
-    ["平均里程", fmt(k.avg_miles, 2) + " mi"], ["中位 / P90 时长（分钟）", `${fmt(k.median_min, 1)} / ${fmt(k.p90_min, 1)}`],
-    ["平均车速", fmt(k.avg_mph, 1) + " mph"], ["小费率（刷卡/App）", fmt(k.tip_pct, 1) + "%"], ["覆盖天数", fmt(k.days)]];
+  const items = [[t("行程数"), fmt(k.trips)], [t("日均行程"), fmt(k.trips_per_day)], [t("乘客总支付"), "$" + big(k.revenue)],
+    [t("平均里程"), fmt(k.avg_miles, 2) + " mi"], [t("中位 / P90 时长（分钟）"), `${fmt(k.median_min, 1)} / ${fmt(k.p90_min, 1)}`],
+    [t("平均车速"), fmt(k.avg_mph, 1) + " mph"], [t("小费率（刷卡/App）"), fmt(k.tip_pct, 1) + "%"], [t("覆盖天数"), fmt(k.days)]];
   $("#kpis").innerHTML = items.map(([l, v]) => `<div class="kpi"><div class="v">${v}</div><div class="l">${l}</div></div>`).join("");
   return ms;
 }
@@ -197,18 +197,18 @@ async function refreshVisible() {
   if (tab.id === "tab-demand") jobs.push(loadKpis());
   if (!jobs.length) return;
   const ms = await Promise.all(jobs);
-  $("#total-ms").textContent = `${cards.length + (tab.id === "tab-demand")} 个查询 · 数据库耗时合计 ${fmt(ms.reduce((a, b) => a + b, 0), 0)} ms · 端到端 ${fmt(performance.now() - t0, 0)} ms`;
+  $("#total-ms").textContent = tr("{0} 个查询 · 数据库耗时合计 {1} ms · 端到端 {2} ms", cards.length + (tab.id === "tab-demand"), fmt(ms.reduce((a,b)=>a+b,0),0), fmt(performance.now()-t0,0));
   cards.forEach((c) => $(".chart", c) && charts.get($(".chart", c))?.resize());
 }
 
 // ---- SQL dialog
 function openSql(name, sql) {
   const d = $("#sql-dialog");
-  $("#dlg-title").textContent = STATUS.analyses[name].title;
+  $("#dlg-title").textContent = t(STATUS.analyses[name].title);
   $("#dlg-sql").textContent = sql || "";
   $("#dlg-plan").textContent = "";
   $("#dlg-explain").onclick = async () => {
-    $("#dlg-plan").textContent = "执行中…";
+    $("#dlg-plan").textContent = t("执行中…");
     try { $("#dlg-plan").textContent = (await api(`/api/explain/${name}?${filterQuery()}`)).plan; }
     catch (e) { $("#dlg-plan").textContent = e.message; }
   };
@@ -219,13 +219,13 @@ $("#dlg-close").onclick = () => $("#sql-dialog").close();
 // ---- benchmark
 $("#run-bench").onclick = async (ev) => {
   ev.target.disabled = true;
-  $("#bench-out").innerHTML = '<p class="muted">运行中…（Parquet 直接查询需要现场解码与规范化，会更慢）</p>';
+  $("#bench-out").innerHTML = htmlT('<p class="muted">运行中…（Parquet 直接查询需要现场解码与规范化，会更慢）</p>');
   try {
     const b = await api("/api/bench");
     const max = Math.max(...b.results.flatMap((r) => [r.table_ms, r.parquet_ms || 0]));
-    $("#bench-out").innerHTML = `<p>数据量：<b>${fmt(b.rows)}</b> 行</p><div class="table"><table><thead><tr>
-      <th>查询</th><th class="num">DuckDB 表 (ms)</th><th></th><th class="num">原始 Parquet (ms)</th><th></th><th class="num">吞吐（行/秒）</th></tr></thead><tbody>
-      ${b.results.map((r) => `<tr title="${esc(r.sql)}"><td>${esc(r.query)}</td>
+    $("#bench-out").innerHTML = `<p>${t("数据量：")}<b>${fmt(b.rows)}</b> ${t("行")}</p><div class="table"><table><thead><tr>
+      <th>${t("查询")}</th><th class="num">${t("DuckDB 表 (ms)")}</th><th></th><th class="num">${t("原始 Parquet (ms)")}</th><th></th><th class="num">${t("吞吐（行/秒）")}</th></tr></thead><tbody>
+      ${b.results.map((r) => `<tr title="${esc(r.sql)}"><td>${esc(t(r.query))}</td>
         <td class="num">${fmt(r.table_ms, 1)}</td><td><div class="bar"><i style="width:${(100 * r.table_ms) / max}%"></i></div></td>
         <td class="num">${fmt(r.parquet_ms, 1)}</td><td><div class="bar"><i style="width:${(100 * (r.parquet_ms || 0)) / max}%"></i></div></td>
         <td class="num">${fmt(r.rows_per_sec)}</td></tr>`).join("")}</tbody></table></div>`;
@@ -248,16 +248,16 @@ GROUP BY ALL ORDER BY trips DESC LIMIT 20;`,
   "导入吞吐": `SELECT service, month, loaded_rows, raw_rows - loaded_rows AS dropped, seconds,
        round(loaded_rows / seconds) AS rows_per_sec FROM ingested_files ORDER BY month, service;`,
 };
-$("#examples").innerHTML = Object.keys(EXAMPLES).map((k) => `<button data-k="${esc(k)}">${esc(k)}</button>`).join("");
+$("#examples").innerHTML = Object.keys(EXAMPLES).map((k) => `<button data-k="${esc(k)}">${esc(t(k))}</button>`).join("");
 $$("#examples button").forEach((b) => (b.onclick = () => ($("#sql").value = EXAMPLES[b.dataset.k])));
 async function runSql() {
   const out = $("#sql-out");
-  out.innerHTML = '<p class="muted">执行中…</p>';
+  out.innerHTML = htmlT('<p class="muted">执行中…</p>');
   try {
     const r = await api("/api/sql", { method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ sql: $("#sql").value }) });
     const rows = r.rows.map((row) => Object.fromEntries(r.columns.map((c, i) => [c, row[i]])));
-    out.innerHTML = `<p class="muted">${rows.length}${r.truncated ? "+（已截断）" : ""} 行 · ${fmt(r.ms, 1)} ms</p><div class="table">${table(rows, true, {})}</div>`;
+    out.innerHTML = `<p class="muted">${rows.length}${r.truncated ? t("+（已截断）") : ""} ${t("行")} · ${fmt(r.ms, 1)} ms</p><div class="table">${table(rows, true, {})}</div>`;
   } catch (e) { out.innerHTML = `<p class="error">${esc(e.message)}</p>`; }
 }
 $("#run-sql").onclick = runSql;
@@ -271,9 +271,9 @@ function renderFiles() {
 let polling = null;
 async function pollJobs() {
   const jobs = await api("/api/jobs");
-  $("#jobs").innerHTML = jobs.slice(0, 5).map((j) => `<div class="job"><b>任务 #${j.id}</b>
-    <span class="muted">${j.finished ? "完成" : "进行中"} · ${j.elapsed}s</span>
-    ${table(j.files.map((f) => ({ 文件: f.file_name, 状态: f.state,
+  $("#jobs").innerHTML = jobs.slice(0, 5).map((j) => `<div class="job"><b>${tr("任务 #{0}", j.id)}</b>
+    <span class="muted">${j.finished ? t("完成") : t("进行中")} · ${j.elapsed}s</span>
+    ${table(j.files.map((f) => ({ 文件: f.file_name, 状态: ({pending:t("待处理"),downloading:t("下载中"),queued:t("排队中"),loading:t("导入中"),done:t("已完成"),error:t("失败")})[f.state] || f.state,
       下载: f.size ? `${Math.round((100 * f.downloaded) / f.size)}%` : "", 行数: f.rows, 秒: f.seconds, 错误: f.error || "" })))}</div>`).join("");
   if (jobs.some((j) => !j.finished)) return;
   clearInterval(polling); polling = null;
@@ -291,8 +291,8 @@ $("#start-ingest").onclick = async () => {
 // ---- boot
 function renderStatus() {
   const s = STATUS;
-  $("#chips").innerHTML = [["行程", fmt(s.trips)], ["数据库", `${fmt(s.db_mb, 1)} MB`],
-    ["范围", s.first_day ? `${s.first_day} ~ ${s.last_day}` : "空"], ["DuckDB", s.duckdb_version], ["线程", s.threads]]
+  $("#chips").innerHTML = [[t("行程"), fmt(s.trips)], [t("数据库"), `${fmt(s.db_mb, 1)} MB`],
+    [t("范围"), s.first_day ? `${s.first_day} ~ ${s.last_day}` : t("空")], ["DuckDB", s.duckdb_version], [t("线程"), s.threads]]
     .map(([l, v]) => `<span class="chip">${l} <b>${esc(v)}</b></span>`).join("");
   if (s.first_day && !$("#start").value) { $("#start").value = s.first_day; $("#end").value = s.last_day; }
 }
@@ -305,6 +305,9 @@ async function boot() {
   boxes("#ingest-svc", (s) => s !== "fhvhv");
   $("#borough").insertAdjacentHTML("beforeend", STATUS.boroughs.map((b) => `<option>${b}</option>`).join(""));
   renderStatus(); renderFiles();
+  I18N.restore(document.querySelector(".filters"));
+  I18N.restore(document.querySelector("#tab-ingest"));
+  I18N.restore(document.querySelector("#tab-lab"));
   $$("#tabs button").forEach((b) => (b.onclick = () => {
     $$("#tabs button").forEach((x) => x.classList.toggle("active", x === b));
     $$(".tab").forEach((t) => (t.hidden = t.id !== `tab-${b.dataset.tab}`));
@@ -312,7 +315,9 @@ async function boot() {
     if (STATUS.trips) refreshVisible();
   }));
   $("#apply").onclick = refreshVisible;
-  if (STATUS.trips) refreshVisible();
+  const savedTab = I18N.saved?.tab;
+  if (savedTab && $$("#tabs button").some(b=>b.dataset.tab===savedTab)) $$("#tabs button").find(b=>b.dataset.tab===savedTab).click();
+  else if (STATUS.trips) refreshVisible();
   else $$("#tabs button").find((b) => b.dataset.tab === "ingest").click();
 }
-boot();
+boot().catch(e => { $("#total-ms").textContent = t("加载失败，请刷新后重试。"); });

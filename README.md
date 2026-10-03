@@ -33,7 +33,7 @@ python -m taxi serve
 
 Open **http://127.0.0.1:8000**. On Windows, activate the environment with `.venv\Scripts\activate`.
 
-Alternatively, start the server with an empty database and import data from the dashboard's Data Import tab. The current dashboard labels are in Chinese; this README uses English descriptions of those tabs.
+Alternatively, start the server with an empty database and import data from the dashboard's Data Import tab. Use the **Settings / 系统设置 → Language / 语言** selector in the header to switch between English and Chinese. Your language preference is saved in the browser; switching preserves filters, drafts, and existing agent results without calling the model again.
 
 **Stop the server before running CLI imports or benchmarks.** While the server is running, use the dashboard to import data so that only one process owns the database file.
 
@@ -56,10 +56,23 @@ python -m taxi bench
 python -m taxi serve --port 8001
 ```
 
+## Business Analyst Agent
+
+A single **Mobility Business Analyst Agent** helps operations teams investigate market changes and prioritize zone/time-band experiments. Open the new **Business Analyst Agent** tab in the dashboard.
+
+- **Run immediately:** generate a local, deterministic decision brief with data-quality checks, calendar-normalized trends, growth opportunities, declines, and proposed validation KPIs. This mode is explicitly labeled as non-AI.
+- **Enable AI questions:** configure `OPENAI_API_KEY` and `TAXI_AGENT_MODEL` on the server. One Responses API agent selects read-only evidence tools and returns a cited decision brief. No arbitrary SQL, dispatch actions, or raw-trip uploads.
+- **Audit the result:** inspect source SQL, bound parameters, coverage checks, rankings, and model tool calls; download the brief and evidence as JSON.
+
+Use all three services for January–March 2025: **9 official files / 71,402,965 retained trips**. A missing month or date blocks operational recommendations. The original single-month green-taxi quick start remains a smaller dashboard demo, but is insufficient for the agent's three-month comparison.
+
+See the [dataset and direct download links](docs/DATASET.md), [download manifest](docs/dataset-2025-q1.json), and [agent setup, methodology, and limitations](docs/AGENT.md).
+
 ## Dashboard
 
 | Tab | What you can explore |
 | --- | --- |
+| Business Analyst Agent | Three-month business briefs, optional AI questions, evidence tables, and JSON exports |
 | Demand overview | Key metrics, daily trips and a seven-day moving average, weekday/hour heatmap, monthly company shares, and trip-distance distribution |
 | Spatial analysis | Top pickup zones, borough-to-borough flows, popular origin/destination pairs, and JFK/LGA/EWR airport trip patterns |
 | Operations and efficiency | Fare per mile/minute, tips, driver pay, wait times, congestion-fee coverage, hourly speeds, and ride-hailing wait-time P50/P90 |
@@ -164,6 +177,8 @@ taxi/
   db.py          Single writer and concurrent read cursors
   ingest.py      Parallel download / serial import pipeline
   analytics.py   Analysis SQL and benchmark queries
+  business.py    Auditable business evidence and fixed decision briefs
+  agent.py       Single-agent tool loop and model integration
   server.py      FastAPI routes and query validation
   static/        Dashboard HTML, JavaScript, and styles
 tests/           Offline tests using generated Parquet fixtures
@@ -186,7 +201,7 @@ Tests generate TLC-shaped Parquet fixtures, including invalid records, and use `
 - Weather and calendar joins to provide context for demand anomalies.
 - CSV and Parquet exports for filtered analysis results.
 - Download retries, duplicate-job protection, and persistent import history.
-- English dashboard localization and shareable filter state.
+- Shareable filter state and saved analysis views.
 
 ## License
 

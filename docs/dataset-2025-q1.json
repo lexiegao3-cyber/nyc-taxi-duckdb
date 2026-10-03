@@ -1,0 +1,86 @@
+{
+  "source": "https://www.nyc.gov/site/tlc/about/tlc-trip-record-data.page",
+  "files": [
+    {
+      "service": "fhvhv",
+      "month": "2025-01",
+      "url": "https://d37ci6vzurychx.cloudfront.net/trip-data/fhvhv_tripdata_2025-01.parquet",
+      "bytes": 491076642,
+      "sha256": "fcdef276f4e9887f2beab30590165cdea74caef50a1313d71fa01ff6afacca3a",
+      "raw_rows": 20405666,
+      "loaded_rows": 20405004
+    },
+    {
+      "service": "green",
+      "month": "2025-01",
+      "url": "https://d37ci6vzurychx.cloudfront.net/trip-data/green_tripdata_2025-01.parquet",
+      "bytes": 1178451,
+      "sha256": "84f3a121667157efcbf012c3566a6065df6f8e0312c678cb2f29cd72cc9c0f10",
+      "raw_rows": 48326,
+      "loaded_rows": 47829
+    },
+    {
+      "service": "yellow",
+      "month": "2025-01",
+      "url": "https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2025-01.parquet",
+      "bytes": 59158238,
+      "sha256": "9af277e4c0d3f9deb30644da822981e1e7df6af58313170fd3aa8a474485488a",
+      "raw_rows": 3475226,
+      "loaded_rows": 3408810
+    },
+    {
+      "service": "fhvhv",
+      "month": "2025-02",
+      "url": "https://d37ci6vzurychx.cloudfront.net/trip-data/fhvhv_tripdata_2025-02.parquet",
+      "bytes": 461632254,
+      "sha256": "2077477d4d841b8ec40a3839b629f08f45f6802ca016adc1e01d6d8cffd2cf23",
+      "raw_rows": 19339461,
+      "loaded_rows": 19339316
+    },
+    {
+      "service": "green",
+      "month": "2025-02",
+      "url": "https://d37ci6vzurychx.cloudfront.net/trip-data/green_tripdata_2025-02.parquet",
+      "bytes": 1117474,
+      "sha256": "b3ffe16a96ba0c68c8a8f8b10f049294ae6eb8d21f2e13b3fdbd452fa2e3498e",
+      "raw_rows": 46621,
+      "loaded_rows": 45935
+    },
+    {
+      "service": "yellow",
+      "month": "2025-02",
+      "url": "https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2025-02.parquet",
+      "bytes": 60343086,
+      "sha256": "037cba555a73663f3a51a2c27816e40e3feb364769942bdf122b9da31e377bd3",
+      "raw_rows": 3577543,
+      "loaded_rows": 3515897
+    },
+    {
+      "service": "fhvhv",
+      "month": "2025-03",
+      "url": "https://d37ci6vzurychx.cloudfront.net/trip-data/fhvhv_tripdata_2025-03.parquet",
+      "bytes": 501783767,
+      "sha256": "671399467732b00653307525421bfc6004e6a45be1fadd5e4b8fa3d11da22043",
+      "raw_rows": 20536879,
+      "loaded_rows": 20536698
+    },
+    {
+      "service": "green",
+      "month": "2025-03",
+      "url": "https://d37ci6vzurychx.cloudfront.net/trip-data/green_tripdata_2025-03.parquet",
+      "bytes": 1253510,
+      "sha256": "d58e8d08e5e8a34c12f0d3f5ea049ae25c7c8215218a6af7bf6b8124ecde1c79",
+      "raw_rows": 51539,
+      "loaded_rows": 50754
+    },
+    {
+      "service": "yellow",
+      "month": "2025-03",
+      "url": "https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2025-03.parquet",
+      "bytes": 69964745,
+      "sha256": "20c4b77cce457b7cfdae77c5069ca7dc91c167f876a41467f4502ab69487a186",
+      "raw_rows": 4145257,
+      "loaded_rows": 4052722
+    }
+  ]
+}

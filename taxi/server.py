@@ -13,17 +13,20 @@ from collections import OrderedDict
 from contextlib import asynccontextmanager
 from datetime import date
 from pathlib import Path
+from typing import Literal
 
 import duckdb
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from . import analytics, loader
+from .agent import AgentBusy, AgentUnavailable, BusinessAgent
 from .config import Settings, get_settings
 from .db import Database
 from .ingest import Ingestor
+from .localization import translate
 from .sources import SERVICES, MonthFile, expand_months, plan
 
 STATIC = Path(__file__).parent / "static"
@@ -33,6 +36,15 @@ MAX_LAB_ROWS = 1000
 class IngestRequest(BaseModel):
     services: list[str]
     months: str  # "2025-01:2025-03"
+
+
+class AgentRequest(BaseModel):
+    end_month: str = Field(pattern=r"^\d{4}-\d{2}$")
+    services: list[str] = Field(default_factory=lambda: list(SERVICES), min_length=1, max_length=3)
+    borough: str | None = None
+    mode: Literal["brief", "ai"] = "brief"
+    question: str = Field(default="", max_length=2000)
+    language: Literal["zh", "en"] = "zh"
 
 
 class SqlRequest(BaseModel):
@@ -130,6 +142,7 @@ def create_app(settings: Settings | None = None, db: Database | None = None) -> 
     db = db or Database(settings.db_path, settings.threads, settings.memory_limit)
     ingestor = Ingestor(db, settings)
     cache = _Cache()
+    business_agent = BusinessAgent(db)
 
     @asynccontextmanager
     async def lifespan(_app):
@@ -152,6 +165,24 @@ def create_app(settings: Settings | None = None, db: Database | None = None) -> 
     @app.get("/")
     def index():
         return FileResponse(STATIC / "index.html")
+
+    @app.get("/api/agent/status")
+    def agent_status():
+        return business_agent.status()
+
+    @app.post("/api/agent/run")
+    def agent_run(req: AgentRequest):
+        try:
+            return business_agent.run(req.end_month, req.services, req.borough or None,
+                                      req.mode, req.question, req.language)
+        except AgentBusy as exc:
+            raise HTTPException(409, translate(str(exc), req.language)) from exc
+        except AgentUnavailable as exc:
+            raise HTTPException(503, translate(str(exc), req.language)) from exc
+        except TimeoutError as exc:
+            raise HTTPException(504, translate(str(exc), req.language)) from exc
+        except ValueError as exc:
+            raise HTTPException(400, translate(str(exc), req.language)) from exc
 
     @app.get("/api/status")
     def status():

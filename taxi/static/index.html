@@ -13,7 +13,12 @@
     <h1>纽约市出行需求分析</h1>
     <span class="sub">NYC TLC 行程记录 · Python + DuckDB 单写入进程</span>
   </div>
-  <div id="chips" class="chips"></div>
+  <div class="header-tools"><div id="chips" class="chips"></div>
+    <label class="language-setting"><span>系统设置</span> · <span>语言</span>
+      <select id="language" aria-label="Language / 语言" data-no-i18n>
+        <option value="zh">中文</option><option value="en">English</option>
+      </select>
+    </label></div>
 </header>
 
 <section class="filters">
@@ -28,6 +33,7 @@
 </section>
 
 <nav id="tabs">
+  <button data-tab="agent">业务分析 Agent</button>
   <button data-tab="demand" class="active">需求概览</button>
   <button data-tab="space">空间分析</button>
   <button data-tab="ops">运营与效率</button>
@@ -38,6 +44,61 @@
 </nav>
 
 <main>
+  <div class="tab" id="tab-agent" hidden>
+    <section class="agent-hero">
+      <div><p class="eyebrow">MOBILITY BUSINESS ANALYST</p>
+        <h2>从市场变化，到可验证的运营决策</h2>
+        <p class="muted">检查数据完整性，比较日均行程，定位值得调查的区域与时段。所有结果保留数据证据。</p></div>
+      <span id="agent-mode-badge" class="chip">正在检查配置…</span>
+    </section>
+    <div class="agent-layout">
+      <section class="card agent-controls">
+        <h3>分析范围</h3>
+        <p class="muted">使用下方独立范围，不受页面顶部筛选器影响。比较截至所选月份的连续三个月。</p>
+        <label class="block" for="agent-month">截至月份 <select id="agent-month"></select></label>
+        <fieldset id="agent-services"><legend>服务</legend>
+          <label><input type="checkbox" value="yellow" checked> 黄车</label>
+          <label><input type="checkbox" value="green" checked> 绿车</label>
+          <label><input type="checkbox" value="fhvhv" checked> 网约车</label>
+        </fieldset>
+        <label class="block" for="agent-borough">上车行政区
+          <select id="agent-borough"><option value="">全部</option></select>
+        </label>
+        <label class="block" for="agent-mode">分析方式
+          <select id="agent-mode"><option value="brief">固定决策简报 · 无需密钥</option><option value="ai">AI 业务问答</option></select>
+        </label>
+        <p id="agent-setup" class="muted"></p>
+        <div id="agent-question-box" hidden>
+          <label for="agent-question">你的业务问题</label>
+          <textarea id="agent-question" maxlength="2000" placeholder="例如：哪些区域与时段值得运营团队进一步调查？">分析所选范围最新月份的市场变化，找出三个值得调查的区域与时段，提出试验方案、验证指标和数据缺口。</textarea>
+          <div class="examples" id="agent-examples">
+            <button type="button">哪些区域与时段值得优先调查？</button>
+            <button type="button">哪些服务和区域出现了订单下降？</button>
+            <button type="button">是否有足够证据建议增加司机补贴？</button>
+          </div>
+        </div>
+        <p class="muted" id="agent-data-policy"></p>
+        <button id="run-agent" class="primary">生成决策简报</button>
+        <p id="agent-progress" role="status" aria-live="polite"></p>
+      </section>
+      <section class="card agent-result">
+        <div class="card-head"><h3>决策简报</h3><button id="agent-export" disabled>下载简报与证据</button></div>
+        <div id="agent-summary" class="muted">选择范围后开始分析。固定简报按预设流程计算；配置模型后，AI 可以根据问题选择分析工具。</div>
+        <div id="agent-kpis" class="kpis"></div>
+        <div data-no-i18n id="agent-answer" class="agent-answer" aria-live="polite"></div>
+        <div id="agent-trace"></div>
+      </section>
+    </div>
+    <div id="agent-evidence" hidden>
+      <div class="grid">
+        <section class="card wide"><h3>月度日均行程 [E2]</h3><div id="agent-trend" class="chart"></div></section>
+        <section class="card wide"><h3>增长机会 [E3]</h3><p class="muted">按日均行程绝对增量排序；不代表缺车、未来需求或利润。</p><div id="agent-opportunities" class="table"></div></section>
+        <section class="card wide"><h3>下降调查 [E4]</h3><div id="agent-declines" class="table"></div></section>
+        <section class="card wide"><details><summary>数据覆盖与清洗 [E1]</summary><div id="agent-coverage" class="table"></div></details></section>
+        <section class="card wide"><details><summary>方法、限制与可复现 SQL</summary><p id="agent-method"></p><div id="agent-queries"></div></details></section>
+      </div>
+    </div>
+  </div>
   <div class="tab" id="tab-demand">
     <div id="kpis" class="kpis"></div>
     <div class="grid">
@@ -89,7 +150,7 @@
       <textarea id="sql" spellcheck="false">SELECT z.borough, count(*) AS trips, round(avg(total), 2) AS avg_total
 FROM trips t JOIN zones z ON z.location_id = t.pu_location_id
 GROUP BY ALL ORDER BY trips DESC;</textarea>
-      <div id="sql-out"></div>
+      <div data-no-i18n id="sql-out"></div>
     </div>
   </div>
 
@@ -119,6 +180,6 @@ GROUP BY ALL ORDER BY trips DESC;</textarea>
 </dialog>
 
 <footer class="muted">数据来源：<a href="https://www.nyc.gov/site/tlc/about/tlc-trip-record-data.page" target="_blank" rel="noopener">NYC TLC Trip Record Data</a> · 引擎：<a href="https://github.com/duckdb/duckdb" target="_blank" rel="noopener">DuckDB</a></footer>
-<script src="/static/app.js"></script>
+<script src="/static/i18n.js"></script>
 </body>
 </html>
